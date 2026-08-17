@@ -33,7 +33,7 @@ export const data = {
   }),
   categories: () => api<{data:Category[]}>('/api/v1/categories',{auth:false}),
   request: (id:number) => api<{data:HelpRequest}>(`/api/v1/help-requests/${id}`,{auth:false}),
-  answers: (id:number) => api<{data:Array<{id:number;content:string;helpful_count:number;is_best_answer:boolean;user?:User}>>(`/api/v1/help-requests/${id}/answers`,{auth:false}),
+  answers: (id:number) => api<{data:Array<{id:number;content:string;helpful_count:number;is_best_answer:boolean;user?:User}>}>(`/api/v1/help-requests/${id}/answers`,{auth:false}),
   createRequest: (payload:Record<string,unknown>) => api<{data:HelpRequest}>('/api/v1/help-requests',{method:'POST',body:JSON.stringify(payload)}),
   answer: (id:number,content:string) => api(`/api/v1/help-requests/${id}/answers`,{method:'POST',body:JSON.stringify({content})}),
   helpful: (id:number) => api(`/api/v1/answers/${id}/helpful`,{method:'POST'}),
