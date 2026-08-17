@@ -17,19 +17,13 @@ async function refreshAccessToken() {
   const refresh = localStorage.getItem('ghn_refresh_token')
   if (!refresh) return false
   try {
-    const res = await fetch(`${API}/api/v1/auth/refresh`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refresh_token: refresh }),
-    })
+    const res = await fetch(`${API}/api/v1/auth/refresh`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({refresh_token:refresh}) })
     const json = await res.json().catch(() => null)
     if (!res.ok || !json?.data?.access_token) return false
     localStorage.setItem('ghn_access_token', json.data.access_token)
     if (json.data.refresh_token) localStorage.setItem('ghn_refresh_token', json.data.refresh_token)
     return true
-  } catch {
-    return false
-  }
+  } catch { return false }
 }
 
 export async function api<T>(path: string, options: ApiOptions = {}): Promise<T> {
@@ -38,14 +32,13 @@ export async function api<T>(path: string, options: ApiOptions = {}): Promise<T>
   if (request.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json')
   const access = localStorage.getItem('ghn_access_token')
   if (useAuth && access) headers.set('Authorization', `Bearer ${access}`)
-
   const res = await fetch(`${API}${path}`, { ...request, headers })
   if (res.status === 401 && useAuth && retry && localStorage.getItem('ghn_refresh_token')) {
-    if (await refreshAccessToken()) return api<T>(path, { ...options, retry: false })
+    if (await refreshAccessToken()) return api<T>(path, { ...options, retry:false })
     clearSession()
   }
   if (res.status === 204) return undefined as T
-  const json = await res.json().catch(() => ({ detail: 'Unexpected server response' }))
+  const json = await res.json().catch(() => ({ detail:'Unexpected server response' }))
   if (!res.ok) throw new Error(formatApiError(json))
   return json
 }
@@ -62,7 +55,7 @@ export const auth = {
 }
 
 export const data = {
-  feed: (mode='newest',q='',categoryId?:number) => api<{data:HelpRequest[];meta:{pages:number}>(`/api/v1/feed?mode=${encodeURIComponent(mode)}&page_size=30${categoryId ? `&category_id=${categoryId}` : ''}`,{auth:false}).then(result => {
+  feed: (mode='newest',q='',categoryId?:number) => api<{data:HelpRequest[];meta:{pages:number}}>(`/api/v1/feed?mode=${encodeURIComponent(mode)}&page_size=30${categoryId ? `&category_id=${categoryId}` : ''}`,{auth:false}).then(result => {
     if (!q.trim()) return result
     const needle = q.trim().toLowerCase()
     return { ...result, data: result.data.filter(item => `${item.title} ${item.description}`.toLowerCase().includes(needle)) }
