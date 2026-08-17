@@ -1,6 +1,7 @@
 const API = import.meta.env.VITE_API_URL || ''
 
 type ApiOptions = RequestInit & { auth?: boolean }
+
 export async function api<T>(path: string, options: ApiOptions = {}): Promise<T> {
   const headers = new Headers(options.headers)
   if (options.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json')
@@ -21,10 +22,15 @@ export const auth = {
   login: (login:string,password:string) => api<{data:{user:User;access_token:string;refresh_token:string}}>('/api/v1/auth/login',{method:'POST',body:JSON.stringify({login,password}),auth:false}),
   register: (payload:Record<string,unknown>) => api<{data:{user:User;access_token:string;refresh_token:string}}>('/api/v1/auth/register',{method:'POST',body:JSON.stringify(payload),auth:false}),
   me: () => api<{data:User}>('/api/v1/users/me'),
-  logout: () => api('/api/v1/auth/logout',{method:'POST',body:JSON.stringify({refresh_token:localStorage.getItem('ghn_refresh_token')||''})})
+  logout: () => api('/api/v1/auth/logout',{method:'POST',body:JSON.stringify({refresh_token:localStorage.getItem('ghn_refresh_token')||''}),auth:false})
 }
+
 export const data = {
-  feed: (mode='newest',q='') => api<{data:HelpRequest[];meta:{pages:number}}>('/api/v1/feed?mode='+encodeURIComponent(mode)+'&page_size=30'+(q?'&q='+encodeURIComponent(q):''),{auth:false}),
+  feed: (mode='newest',q='') => api<{data:HelpRequest[];meta:{pages:number}}>('/api/v1/feed?mode='+encodeURIComponent(mode)+'&page_size=30',{auth:false}).then(result => {
+    if (!q.trim()) return result
+    const needle = q.trim().toLowerCase()
+    return { ...result, data: result.data.filter(item => `${item.title} ${item.description}`.toLowerCase().includes(needle)) }
+  }),
   categories: () => api<{data:Category[]}>('/api/v1/categories',{auth:false}),
   request: (id:number) => api<{data:HelpRequest}>(`/api/v1/help-requests/${id}`,{auth:false}),
   answers: (id:number) => api<{data:Array<{id:number;content:string;helpful_count:number;is_best_answer:boolean;user?:User}>>>(`/api/v1/help-requests/${id}/answers`,{auth:false}),
@@ -33,8 +39,18 @@ export const data = {
   helpful: (id:number) => api(`/api/v1/answers/${id}/helpful`,{method:'POST'}),
   best: (id:number) => api(`/api/v1/answers/${id}/best`,{method:'PATCH'}),
   notifications: () => api<{data:Array<{id:number;title:string;body:string;is_read:boolean;created_at:string}>}>('/api/v1/notifications'),
-  conversations: () => api<{data:Array<{id:number;title?:string;updated_at:string}>}>('/api/v1/conversations'),
+  conversations: () => api<{data:Array<{id:number;other_user_id:number;last_message_at?:string}>}>('/api/v1/conversations'),
+  messages: (id:number) => api<{data:Array<{id:number;sender_id:number;receiver_id:number;content:string;read_at?:string;created_at:string}>>>(`/api/v1/conversations/${id}/messages`),
+  sendMessage: (id:number,content:string) => api(`/api/v1/conversations/${id}/messages`,{method:'POST',body:JSON.stringify({content})}),
+  markConversationRead: (id:number) => api(`/api/v1/conversations/${id}/read`,{method:'PATCH'}),
+  markNotificationRead: (id:number) => api(`/api/v1/notifications/${id}/read`,{method:'PATCH'}),
+  markAllNotificationsRead: () => api('/api/v1/notifications/read-all',{method:'PATCH'}),
 }
-export function saveSession(data:{user:User;access_token:string;refresh_token:string}) { localStorage.setItem('ghn_access_token',data.access_token); localStorage.setItem('ghn_refresh_token',data.refresh_token); localStorage.setItem('ghn_user',JSON.stringify(data.user)) }
+
+export function saveSession(data:{user:User;access_token:string;refresh_token:string}) {
+  localStorage.setItem('ghn_access_token',data.access_token)
+  localStorage.setItem('ghn_refresh_token',data.refresh_token)
+  localStorage.setItem('ghn_user',JSON.stringify(data.user))
+}
 export function clearSession(){localStorage.removeItem('ghn_access_token');localStorage.removeItem('ghn_refresh_token');localStorage.removeItem('ghn_user')}
 export function cachedUser():User|null { try{return JSON.parse(localStorage.getItem('ghn_user')||'null')}catch{return null} }
