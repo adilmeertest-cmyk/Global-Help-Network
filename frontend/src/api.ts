@@ -3,7 +3,16 @@ const API = import.meta.env.VITE_API_URL || ''
 export type ApiOptions = RequestInit & { auth?: boolean; retry?: boolean }
 
 function formatApiError(json: any, fallback = 'Something went wrong') {
-  if (typeof json?.detail === 'string') return json.detail
+  if (typeof json?.detail === 'string') {
+    const known: Record<string, string> = {
+      DUPLICATE_EMAIL: 'This email is already registered. Please sign in instead.',
+      DUPLICATE_USERNAME: 'This username is already taken. Please choose another one.',
+      TOKEN_INVALID: 'Your session is invalid. Please sign in again.',
+      TOKEN_EXPIRED: 'Your session has expired. Please sign in again.',
+      FORBIDDEN: 'You do not have permission to perform this action.',
+    }
+    return known[json.detail] || json.detail
+  }
   if (Array.isArray(json?.detail)) {
     return json.detail.map((item: any) => {
       const field = Array.isArray(item?.loc) ? item.loc.filter((x: unknown) => x !== 'body').join('.') : ''
@@ -17,13 +26,19 @@ async function refreshAccessToken() {
   const refresh = localStorage.getItem('ghn_refresh_token')
   if (!refresh) return false
   try {
-    const res = await fetch(`${API}/api/v1/auth/refresh`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({refresh_token:refresh}) })
+    const res = await fetch(`${API}/api/v1/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: refresh }),
+    })
     const json = await res.json().catch(() => null)
     if (!res.ok || !json?.data?.access_token) return false
     localStorage.setItem('ghn_access_token', json.data.access_token)
     if (json.data.refresh_token) localStorage.setItem('ghn_refresh_token', json.data.refresh_token)
     return true
-  } catch { return false }
+  } catch {
+    return false
+  }
 }
 
 export async function api<T>(path: string, options: ApiOptions = {}): Promise<T> {
@@ -32,14 +47,33 @@ export async function api<T>(path: string, options: ApiOptions = {}): Promise<T>
   if (request.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json')
   const access = localStorage.getItem('ghn_access_token')
   if (useAuth && access) headers.set('Authorization', `Bearer ${access}`)
-  const res = await fetch(`${API}${path}`, { ...request, headers })
+
+  let res: Response
+  try {
+    res = await fetch(`${API}${path}`, { ...request, headers })
+  } catch {
+    throw new Error('Unable to reach the server. Please check the deployment and try again.')
+  }
+
   if (res.status === 401 && useAuth && retry && localStorage.getItem('ghn_refresh_token')) {
-    if (await refreshAccessToken()) return api<T>(path, { ...options, retry:false })
+    if (await refreshAccessToken()) return api<T>(path, { ...options, retry: false })
     clearSession()
   }
+
   if (res.status === 204) return undefined as T
-  const json = await res.json().catch(() => ({ detail:'Unexpected server response' }))
-  if (!res.ok) throw new Error(formatApiError(json))
+
+  const contentType = res.headers.get('content-type') || ''
+  const json = contentType.includes('application/json')
+    ? await res.json().catch(() => null)
+    : null
+
+  if (!res.ok) {
+    if (json) throw new Error(formatApiError(json, `Request failed (${res.status})`))
+    if (res.status >= 500) throw new Error('The backend is currently unavailable. Please check the server/database configuration.')
+    throw new Error(`Request failed (${res.status})`)
+  }
+
+  if (!json) throw new Error('The server returned an invalid response.')
   return json
 }
 
