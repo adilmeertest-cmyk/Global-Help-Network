@@ -7,7 +7,7 @@
   "functions": {
     "api/index.py": {
       "maxDuration": 30,
-      "includeFiles": ["backend/**", "templates/**"],
+      "includeFiles": "{backend/**,templates/**}",
       "excludeFiles": "{backend/tests/**,tests/**,__tests__/**,**/*.test.py,**/test_*.py}"
     }
   },
