@@ -1,1 +1,39 @@
-<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><script src="https://cdn.tailwindcss.com"></script></head><body class="bg-slate-50"><main class="max-w-6xl mx-auto p-6"><h1 class="text-3xl font-black">Admin Dashboard</h1><div id="stats" class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6"></div><div class="bg-white rounded-2xl p-5 mt-6"><h2 class="font-bold">Users</h2><div id="users"></div></div></main><script>const h={Authorization:'Bearer '+localStorage.access_token};Promise.all([fetch('/api/v1/admin/dashboard/stats',{headers:h}),fetch('/api/v1/admin/users',{headers:h})]).then(async([a,b])=>{let s=await a.json(),u=await b.json();stats.innerHTML=Object.entries(s.data||{}).map(([k,v])=>`<div class="bg-white p-4 rounded-xl"><b>${v}</b><small>${k}</small></div>`).join('');users.innerHTML=(u.data||[]).map(x=>`<div class="border-b py-2">${x.username} — ${x.account_status}</div>`).join('')})</script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Global Help Network — Admin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-100">
+  <main class="mx-auto max-w-7xl p-5 sm:p-8">
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div><p class="text-xs font-bold uppercase tracking-[0.2em] text-indigo-300">Control center</p><h1 class="mt-2 text-3xl font-black">Global Help Network Admin</h1><p class="mt-2 text-sm text-slate-400">Protected operations dashboard.</p></div>
+      <a href="/" class="rounded-xl bg-white/10 px-4 py-2 text-sm font-bold hover:bg-white/15">Back to app</a>
+    </div>
+    <div id="error" class="mt-6 hidden rounded-2xl border border-rose-400/30 bg-rose-500/10 p-4 text-sm text-rose-200"></div>
+    <section id="stats" class="mt-7 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6"></section>
+    <section class="mt-7 rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur">
+      <div class="flex items-center justify-between"><div><h2 class="font-black">Users</h2><p class="text-xs text-slate-400">Current account status.</p></div></div>
+      <div id="users" class="mt-4 overflow-auto"></div>
+    </section>
+  </main>
+<script>
+const token=localStorage.getItem('ghn_access_token');
+const headers=token?{Authorization:'Bearer '+token}:{};
+const errorBox=document.getElementById('error');
+async function load(){
+  if(!token){errorBox.textContent='Please sign in as an administrator first.';errorBox.classList.remove('hidden');return}
+  try{
+    const [a,b]=await Promise.all([fetch('/api/v1/admin/dashboard/stats',{headers}),fetch('/api/v1/admin/users',{headers})]);
+    const s=await a.json(),u=await b.json();
+    if(!a.ok||!b.ok) throw new Error(s.detail||u.detail||'Admin access required');
+    stats.innerHTML=Object.entries(s.data||{}).map(([k,v])=>`<div class="rounded-2xl border border-white/10 bg-white/5 p-4"><b class="text-2xl">${v}</b><p class="mt-1 text-xs text-slate-400">${k.replaceAll('_',' ')}</p></div>`).join('');
+    users.innerHTML=(u.data||[]).map(x=>`<div class="flex items-center justify-between gap-4 border-t border-white/10 py-3"><div><b>${x.name||x.username}</b><p class="text-xs text-slate-400">@${x.username} · ${x.email||''}</p></div><span class="rounded-full bg-white/10 px-3 py-1 text-xs font-bold">${x.account_status}</span></div>`).join('')||'<p class="py-6 text-sm text-slate-400">No users found.</p>';
+  }catch(e){errorBox.textContent=e.message;errorBox.classList.remove('hidden')}
+}
+load();
+</script>
+</body>
+</html>
