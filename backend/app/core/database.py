@@ -2,16 +2,17 @@ from collections.abc import AsyncGenerator
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.pool import NullPool
 
 from .config import settings
 
 
-# Vercel/serverless instances should not hold a large persistent connection
-# pool. NullPool also prevents stale pooled connections after a cold start.
+# Serverless functions can be created and destroyed frequently. NullPool keeps
+# each request independent and avoids stale/excess PostgreSQL connections.
 engine = create_async_engine(
     settings.normalized_database_url,
+    poolclass=NullPool,
     pool_pre_ping=True,
-    pool_recycle=300,
 )
 SessionLocal = async_sessionmaker(engine, expire_on_commit=False)
 
