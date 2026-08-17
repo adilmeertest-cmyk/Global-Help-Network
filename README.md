@@ -1,6 +1,6 @@
 # 🌍 Global Help Network
 
-A people-helping-people platform built around **ASK → HELP → SOLVE → TRUST**. The repository follows the requested Python/FastAPI + PostgreSQL + Jinja2/Tailwind/vanilla-JS stack. The product specification requires FastAPI, SQLAlchemy async, PostgreSQL, JWT/bcrypt security, responsive pages, messaging, notifications, reputation, reports, blocks, admin tools and tests. fileciteturn4file0L26-L32
+A people-helping-people platform built around **ASK → HELP → SOLVE → TRUST**.
 
 ## Stack
 - Python 3.12+
@@ -24,9 +24,9 @@ copy .env.example .env  # Windows
 uvicorn app.main:app --reload --app-dir backend
 ```
 
-Set `DATABASE_URL` and `JWT_SECRET_KEY` in `.env` before starting. The application creates its SQLAlchemy tables on startup for local development. For production, use Alembic migrations before deployment.
+Set `DATABASE_URL` and `JWT_SECRET_KEY` in `.env` before starting. The application creates SQLAlchemy tables on startup for local development.
 
-## Seed categories
+## Seed categories and create admin
 
 ```bash
 cd backend
@@ -34,7 +34,7 @@ python -m scripts.seed_categories
 python -m scripts.create_admin --email admin@example.com --username admin --password 'ChangeMe123!'
 ```
 
-The requested initial category set contains 11 categories: Technology, Education, Jobs & Career, Travel, Local Help, Housing, Shopping, Transportation, Finance, Daily Life and Other. fileciteturn4file0L74-L79
+The requested category set contains 11 categories: Technology, Education, Jobs & Career, Travel, Local Help, Housing, Shopping, Transportation, Finance, Daily Life and Other.
 
 ## API
 - `/health`
@@ -53,8 +53,6 @@ The requested initial category set contains 11 categories: Technology, Education
 - `/api/v1/blocks/*`
 - `/api/v1/admin/*`
 
-The API uses the requested success envelope and pagination convention. fileciteturn4file0L107-L116
-
 ## Frontend
 - `/` — feed
 - `/login` — login
@@ -64,10 +62,10 @@ The API uses the requested success envelope and pagination convention. fileci
 - `/messages` — conversations
 - `/notifications` — notifications
 - `/admin` — admin dashboard
-- `/profile?username=USERNAME` — profile endpoint/page foundation
+- `/profile?username=USERNAME` — profile foundation
 
 ## Security
-Passwords are bcrypt-hashed, refresh tokens are stored as SHA-256 hashes, JWT access/refresh tokens are rotated, account status is checked on protected routes, and admin endpoints require the admin role. These are core requirements from the supplied specification. fileciteturn4file0L92-L103
+Passwords are bcrypt-hashed, refresh tokens are stored as SHA-256 hashes, access/refresh JWTs are rotated, account status is checked on protected routes, and admin endpoints require the admin role.
 
 ## Tests
 
@@ -77,4 +75,4 @@ pytest -v --cov=app --cov-report=term-missing
 ```
 
 ## Project status
-This repository contains the runnable application foundation and the major core product flows from the supplied specification. The supplied specification itself calls for a larger multi-batch implementation, including dedicated route/service/model files, Alembic migrations and a broad integration test suite. fileciteturn4file0L45-L56
+The repository now contains the runnable application foundation and major core product flows. The supplied specification additionally calls for a larger dedicated route/service/model structure, Alembic migrations and a broad integration test suite; those remain expansion work rather than being represented as fake or placeholder functionality.
